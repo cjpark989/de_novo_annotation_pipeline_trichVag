@@ -1,114 +1,133 @@
-import itertools as it
+import os.path
+import subprocess
 
+""" 
+HAS TO BE RUN IN PYTHON 3!!!
+"""
 
-def LTR(genome_name,n,family_name,type_name):
-    #takes genome name (ex: "T_tenax.fa.out"), length specification, and keyword (ex: "Line") as an input
-    #what do you want to filter from the .fa.out file
-    #exports .bed file named "1000.bed"
+def filter_strain(strain_name,n_bp,fam_name,type_name):
+    # setup for "input_for_bedtools.bed"
+    # setup for "input_for_bedtools.bed" file location
+    save_path = "/Users/chungjunepark/Documents/"+strain_name+"/files_and_outputs/inputs/input_for_bedtools"
+    name_of_file = "input_for_bedtools_"+strain_name
+    completeName = os.path.join(save_path,name_of_file+".bed")
 
-    f = open(genome_name+ ".fa.out", "r")
+    # open "strain_name.fa.out"
+    f = open("/Users/chungjunepark/Documents/"+strain_name+"/files_and_outputs/files/"+strain_name+".fa.out","r")
+    lines = f.readlines()[3:]
 
-    for lines in f:
-        x = lines.split()
+    for line in lines:
+        x = line.split()
         d = int(x[6]) - int(x[5])
-        
-        if (d > n) and (family_name in x[9]) and (type_name in x[10]):
-            with open("1000.bed","a") as bedfile:
+        if (d>=n_bp) and (fam_name == x[9]) and (type_name == x[10]):
+            with open(completeName,"a") as bedfile:
                 bedfile.write(x[4] + "\t")
                 bedfile.write(x[5] + "\t")
                 bedfile.write(x[6] + "\t")
                 bedfile.write(x[9] + "\t")
                 bedfile.write(x[10] + "\t")
                 bedfile.write("\n")
-    bedfile.close()
+            bedfile.close()
+    f.close()
 
-def genome(genome_name):
-    #takes genome name (ex: "T_tenax.fa") as an input
-    #exports .bed file named "1000_2.bed"
+def bedtools_runner(strain_name,fam_name,type_name):    
+    # will output a file named: Unknown-fam-33.fa
+    # runs bedtools via bashcript, outputs to /Users/chungjunepark/Documents/T_stableri_BTPI/files_and_outputs/outputs/output_from_bedtools
 
-    f = open(genome_name + ".fa", "r")
-    n = 1
-
-    for lines in f:
-        with open("1000_2.bed","a") as bedfile:
-            if "LINE" in lines:
-                bedfile.write(lines)
-                n*=-1
-                continue
-            if n < 0:
-                n*=-1
-                bedfile.write(lines)
-                bedfile.write("\n")
-        
-    bedfile.close()
-
-def categorize():
-    #opens "1000.bed" file, and produces a "category_1000.bed" file 
-    #"category_1000.bed" file will include repeat/class family types, and how many of those were each found
-
-    f = open("1000.bed", "r")
-    l = {}
-
-    for lines in f:
-        x = lines.split()
-        
-        if x[3] not in l.keys():
-            l[x[3]] = 1
-        else:
-            l[x[3]] += 1
-        
-    with open("category_1000.bed","a") as bedfile:
-        for keys in l.keys():
-            bedfile.write(keys + "\t" + str(l[keys]))
-            bedfile.write("\n")
-        
-    bedfile.close()
-
-def sixpack_primer(file_name):
-    #takes one .fa file as an input, and outputs multiple .fa files (each containing one fasta line)
-    #sixpack_primer would prime the .fa file for sixpack -sequence -output
+    # has to cd into /Users/chungjunepark/Documents/T_stableri_BTPI/files_and_outputs/inputs/input_for_bedtools
+    subprocess.run(["cd","/Users/chungjunepark/Documents/"+strain_name+"/files_and_outputs/inputs/input_for_bedtools"])
     
-    #first open .fa file in "r" mode
-    f = open(file_name + ".fa", "r")
+    # ex: fam_name = "rnd-1_family-33", then stripped_fam_name = "family-33"
+    stripped_fam_name = fam_name.partition("_")[-1]
+
+    # gets put into subprocess.run()
+    subprocess_argument_frag = ["bedtools", "getfasta","-fi","/Users/chungjunepark/Documents/"+strain_name+"/files_and_outputs/files/"+strain_name+".fa","-bed","/Users/chungjunepark/Documents/"+strain_name+"/files_and_outputs/inputs/input_for_bedtools/input_for_bedtools_"+strain_name+".bed"]
+
+    # will return the output
+    output = subprocess.run(subprocess_argument_frag,stdout = subprocess.PIPE)
+    
+    # append to other file location
+    save_path = "/Users/chungjunepark/Documents/"+strain_name+"/files_and_outputs/outputs/output_from_bedtools"
+    name_of_file = strain_name+"-"+type_name+"-"+stripped_fam_name
+    completeName = os.path.join(save_path,name_of_file+".fa")
+    with open(completeName,"a") as fa_file:
+        fa_file.write(output.stdout.decode("utf-8"))
+    fa_file.close()
+
+def sixpack_primer(strain_name,fam_name,type_name):
+    # will prime bedtools output so that it can be sent through sixpack
+    stripped_fam_name = fam_name.partition("_")[-1]
+    f = open("/Users/chungjunepark/Documents/"+strain_name+"/files_and_outputs/outputs/output_from_bedtools/"+strain_name+"-"+type_name+"-"+stripped_fam_name+".fa","r")
     file_list = []
-    #unique .fa file name attribute
-    a = 0
 
-    for lines in f:
-        file_list.append(lines)
+    # counter for sequence files (ex: "sequence_<a>")
+    a = 1
 
+    for line in f:
+        file_list.append(line)
+
+    f.close() 
+    
+    # setup for file save location
+    save_path = "/Users/chungjunepark/Documents/"+strain_name+"/files_and_outputs/inputs/input_for_six_pack/"
+
+    # counter for iterator
     i = 0
-    while i < len(file_list):
-        with open("sequence_" + str(a),"a") as primer:
+    while i<len(file_list):
+        with open(save_path+"input_for_sixpack_"+strain_name+"_sequence_"+str(a),"a") as primer:
             primer.write(file_list[i])
             primer.write(file_list[i+1])
         primer.close()
-        
         a+=1
-        i+=2          
+        i+=2
 
-def longest_orf(file_name):    
-    #WARNING: uses "aa" in .seq file as separator
-    with  open(file_name + ".seq") as fp:
-        contents = fp.read()
-    fp.close()
-    
-    l = []
-    
-    for entry in contents.split('>'):
-        #do something with entry  
-        #entry = 8345757-8347785_6_ORF70  Translation of 8345757-8347785 in frame 6, ORF 70, threshold 1, 31aa ///// LFEVHLNVHRLHLYQVHNRKAFWFALLCYSX
-        l.append(entry)
-    
-    l.pop(0)
+def sixpack(strain_name,fam_name,type_name):
+    # will run sixpack through subprocess and output .seq and .translated files for the corresponding "input_for_six_pack" file in "output_for_six_pack" folder
+    # how many sequence files are there
+    stripped_fam_name = fam_name.partition("_")[-1]
+    f = open("/Users/chungjunepark/Documents/"+strain_name+"/files_and_outputs/outputs/output_from_bedtools/"+strain_name+"-"+type_name+"-"+stripped_fam_name+".fa","r")
+    text = f.read()
+    num_caret = text.count(">")
+    f.close()
 
-    l_dict = {}
+    # paths into output and input folder for sixpack
+    sixpack_output_path = "/Users/chungjunepark/Documents/T_stableri_BTPI/files_and_outputs/outputs/output_from_six_pack/"
+    sixpack_input_path = "/Users/chungjunepark/Documents/T_stableri_BTPI/files_and_outputs/inputs/input_for_six_pack/"
     
-    for line in l:
-        x = line.split("aa")
-        l_dict[x[0] + "aa"] = x[1]
+    # utilizing for loop in order to run sixpack on each "input_for_six_pack" file
+    for n in range(1,num_caret+1):
+        input_file = sixpack_input_path+"input_for_sixpack_"+strain_name+"_sequence_"+str(n)
+        output_translated = sixpack_output_path+"output_for_sixpack_"+strain_name+str(n)+".translated"
+        output_seq = sixpack_output_path+"output_for_sixpack_"+strain_name+str(n)+".seq"
+        subprocess_argument_frag = ["sixpack","-mstart","-table","0","-sequence",input_file,"-outfile",output_translated,"-outseq",output_seq]
+        subprocess.run(subprocess_argument_frag)
 
-    longest_orf = max(l_dict.values(), key=len)
+"""
+def longest_orf(strain_name,fam_name,type_name):
+    # will find the longest_orf for each .seq file in "output_for_six_pack"
     
-    return longest_orf
+    # how many sequence files are there
+    stripped_fam_name = fam_name.partition("_")[-1]
+    f = open("/Users/chungjunepark/Documents/"+strain_name+"/files_and_outputs/outputs/output_from_bedtools/"+strain_name+"-"+type_name+"-"+stripped_fam_name+".fa","r")
+    text = f.read()
+    num_caret = text.count(">")
+    f.close()
+    
+    # counter represents 1 - 56 for the .seq files
+    a = 1
 
+    #going from 0 ~ num_caret for .seq files
+    with open("/Users/chungjunepark/Documents/T_stableri_BTPI/files_and_outputs/outputs/longest_orf.fa","a") as l:
+        while a < num_caret+1:
+            current_file_name = "/Users/chungjunepark/Documents/"+strain_name+"/files_and_outputs/outputs/output_from_six_pack/output_for_sixpack_"+strain_name+str(a)+".seq"
+
+            with open(current_file_name) as f:
+                first_line = f.readline().rstrip()
+            
+            l.write(first_line)
+            l.write(longest_orf(current_file_name)) 
+            l.write("\n")
+
+            #increment a by 1
+            a+=1
+"""
