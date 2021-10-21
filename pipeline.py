@@ -1,15 +1,27 @@
 import sys
+import os
+
 strain = "T_stableri_BTPI"
 sys.path.insert(1,"/Users/chungjunepark/Documents/"+strain+"/methods")
 from methods import *
 
-def pipeline(strain_name,n_bp,fam_name,type_name):
-    filter_strain(strain_name,n_bp,fam_name,type_name)
-    bedtools_runner(strain_name,fam_name,type_name)
-    sixpack_primer(strain_name,fam_name,type_name)
-    sixpack(strain_name,fam_name,type_name)
+directory = "/Users/chungjunepark/Documents/T_stableri_BTPI/files_and_outputs/inputs/input_for_bedtools" 
 
-def main():
-    pipeline("T_stableri_BTPI",1000,"rnd-1_family-33","Unknown")
+def pipeline(strain_name,n_bp,type_name):
+    l = categorize(strain_name,type_name)
+    print("done with categorizing!")
+    for e in l:
+        filter_strain(strain_name,n_bp,e,type_name)
 
-main()
+    print("done with filter_strain!")
+    for filename in os.listdir(directory): 
+        filename = filename.replace("input_for_bedtools_"+strain+"_","")
+        filename = filename.replace(".bed","")
+        bedtools_runner(strain_name,filename,type_name)
+        sixpack_primer(strain_name,filename,type_name)
+        sixpack_runner(strain_name,filename,type_name)
+        #longest_orf(strain_name,filename,type_name)
+n_bp = int(input("Specify length: "))
+
+pipeline("T_stableri_BTPI",n_bp,"Unknown")
+
