@@ -1,7 +1,6 @@
 import sys
 import os
 
-strain = "T_stableri_BTPI"
 sys.path.insert(1,"/Users/chungjunepark/Documents/"+strain+"/methods")
 from methods import *
 
@@ -15,13 +14,15 @@ def pipeline(strain_name,n_bp,type_name):
 
     print("done with filter_strain!")
     for filename in os.listdir(directory): 
-        filename = filename.replace("input_for_bedtools_"+strain+"_","")
+        filename = filename.replace("input_for_bedtools_"+strain_name+"_","")
         filename = filename.replace(".bed","")
         bedtools_runner(strain_name,filename,type_name)
         sixpack_primer(strain_name,filename,type_name)
         sixpack_runner(strain_name,filename,type_name)
         #longest_orf(strain_name,filename,type_name)
 n_bp = int(input("Specify length: "))
+strain_name = input("Specify strain: ")
+type_name = input("Specify type: ")
 
-pipeline("T_stableri_BTPI",n_bp,"Unknown")
+pipeline(strain,n_bp,type_name)
 
