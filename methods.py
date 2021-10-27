@@ -117,9 +117,12 @@ def sixpack_runner(strain_name,fam_name,type_name):
     
     # utilizing for loop in order to run sixpack on each "input_for_six_pack" file
     for n in range(1,num_caret+1):
+        # strain_name = "T_Stableri_BTPI"
+        # fam_name = "rnd-1_family-33"
+        # n is just a counter
         input_file = sixpack_input_path+"input_for_sixpack_"+strain_name+"_sequence_"+fam_name+"_"+str(n)
-        output_translated = sixpack_output_path+"output_for_sixpack_"+strain_name+"_"+fam_name+"_"+str(n)+".translated"
-        output_seq = sixpack_output_path+"output_for_sixpack_"+strain_name+"_"+fam_name+"_"+str(n)+".seq"
+        output_translated = sixpack_output_path+"output_from_sixpack_"+strain_name+"_"+fam_name+"_"+str(n)+".translated"
+        output_seq = sixpack_output_path+"output_from_sixpack_"+strain_name+"_"+fam_name+"_"+str(n)+".seq"
         subprocess_argument_frag = ["sixpack","-mstart","-table","0","-sequence",input_file,"-outfile",output_translated,"-outseq",output_seq]
         subprocess.run(subprocess_argument_frag)
 
@@ -132,24 +135,56 @@ def sixpack_runner(strain_name,fam_name,type_name):
 # will get a shit ton of files.
 
 def longest_orf(strain_name,fam_name,type_name):
-    # n is incremented by 1
-    n = 1
+    # one fam_name will go through X amounts of iterations
+    # DEFINE X
+    f = open("/Users/chungjunepark/Documents/"+strain_name+"/files_and_outputs/outputs/output_from_bedtools/"+strain_name+"-"+type_name+"-"+fam_name+".fa","r")
+    text = f.read()
+    x = text.count(">")
+    f.close()
 
-    # name of file we're trying to access 
-    file_name = "/Users/chungjunepark/Documents/T_stableri_BTPI/files_and_outputs/outputs/output_from_six_pack/output_for_sixpack_"+strain_name+"_"+fam_name+"_"+str(n)+".seq"
-
-    while os.path.exists(file_name):
-        # content
-        f = open(file_name)
-        lines = f.readlines()[1::2]
+    for n in range(1,x+1):
+        # list that will contain all of fam_name_n.seq's outputs
         l = []
-        for line in lines:
-            l.append(line)
+        # list that will contain the indexes of all the lines that start with ">"
+        caret = []
+        # file path + name for input file
+        file_name = "/Users/chungjunepark/Documents/T_stableri_BTPI/files_and_outputs/outputs/output_from_six_pack/output_from_sixpack_"+strain_name+"_"+fam_name+"_"+str(n)+".seq"
+        # read file_name and get the sequences
+        # f_2 is a list of all the separate lines in the file as its elements
+        f_2 = open(file_name).readlines()
+
+        # iterate through the lines list and find the indexes of the ">" occurring ones
+        for element in f_2:
+            if element.startswith(">"):
+                caret.append(f_2.index(element))
+        # iterate through the index list and concatinate lines that are inbetween those indexes
+        for index,element in enumerate(caret):
+            # element is what we're on right now
+            # caret[index+1] is the next element
+            if index+1 < len(caret):
+                l.append("".join(f_2[element+1:caret[index+1]]))
+            else:
+                break
+
+        # longest_orf for specific n in specific fam_name
+        longest_orf = max(l, key = len)
+        while not longest_orf.startswith("M"):
+            l.remove(longest_orf)
+            longest_orf = max(l, key=len)
+        str1 = ""
+        longest_orf = str1.join(longest_orf)
+
+        # create a file in longest_orf to save .txt file of longest_orf
+        file_path = "/Users/chungjunepark/Documents/T_stableri_BTPI/files_and_outputs/longest_orf/longest_orf_"+strain_name+"_"+fam_name+"_"+str(n)+".txt"
+
+        with open(file_path,"a") as f_3:
+            f_3.write(">"+fam_name+"_"+str(n)+"\n")
+            f_3.write(longest_orf)
         
-        file_name = "/Users/chungjunepark/Documents/T_stableri_BTPI/files_and_outputs/outputs/output_from_six_pack/output_for_sixpack_"+strain_name+"_"+fam_name+"_"+str(n)+".seq"
+        f_3.close()
 
-        n+=1
-        print("longest orf: "+max(l,key=len))
-
-
-#longest_orf("T_stableri_BTPI","rnd-4_family-303","Unknown")
+#filter_strain("T_Stableri_BTPI",1000,"rnd-1_family-33","Unknown")
+#bedtools_runner("T_Stableri_BTPI","rnd-1_family-33","Unknown")
+#sixpack_primer("T_Stableri_BTPI","rnd-1_family-33","Unknown")
+#sixpack_runner("T_Stableri_BTPI","rnd-1_family-33","Unknown")
+#longest_orf("T_Stableri_BTPI","rnd-1_family-33","Unknown")
