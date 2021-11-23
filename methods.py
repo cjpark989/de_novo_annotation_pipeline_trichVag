@@ -1,19 +1,24 @@
 import os.path
 import subprocess
+import re 
+import os.path as path_2
 
 """ 
 HAS TO BE RUN IN PYTHON 3!!!
 """
 
+two_up =  path_2.abspath(path_2.join(__file__ ,"../.."))
+# two_up = /Users/chungjunepark/Documents/T_stableri_BTPI
+
 def categorize(strain_name,type_name):
     # will output a list with all the fam_name listed 
     # these fam_name would be associated with the type_name
-    save_path = "/Users/chungjunepark/Documents/"+strain_name+"/files_and_outputs/files"
+    save_path = two_up+"/files_and_outputs/files"
     name_of_file = "category_"+strain_name+"_"+type_name
     #completeName = os.path.join(save_path,name_of_file)
 
     # open strain_name.fa.out and read from line 3
-    f = open("/Users/chungjunepark/Documents/"+strain_name+"/files_and_outputs/files/"+strain_name+".fa.out","r")
+    f = open(two_up+"/files_and_outputs/files/"+strain_name+".fa.out","r")
     lines = f.readlines()[3:]
 
     # create list to put in all the fam_name
@@ -21,7 +26,7 @@ def categorize(strain_name,type_name):
 
     for line in lines:
         x = line.split()
-        if (x[10]==type_name) and (x[9] not in l):
+        if (x[10].find(type_name) != -1) and (x[9] not in l):
             l.append(x[9])
     f.close()
     return l
@@ -31,17 +36,17 @@ def categorize(strain_name,type_name):
 def filter_strain(strain_name,n_bp,fam_name,type_name):
     # setup for "input_for_bedtools.bed"
     # setup for "input_for_bedtools.bed" file location
-    save_path = "/Users/chungjunepark/Documents/"+strain_name+"/files_and_outputs/inputs/input_for_bedtools"
+    save_path = two_up+"/files_and_outputs/inputs/input_for_bedtools"
     name_of_file = "input_for_bedtools_"+strain_name+"_"+fam_name
     completeName = os.path.join(save_path,name_of_file+".bed")
 
     # open "strain_name.fa.out"
-    f = open("/Users/chungjunepark/Documents/"+strain_name+"/files_and_outputs/files/"+strain_name+".fa.out","r")
+    f = open(two_up+"/files_and_outputs/files/"+strain_name+".fa.out","r")
     lines = f.readlines()[3:]
     for line in lines:
         x = line.split()
         d = int(x[6]) - int(x[5])
-        if (d>=n_bp) and (fam_name == x[9]) and (type_name == x[10]):
+        if (d>=n_bp) and (fam_name == x[9]) and (x[10].find(type_name) != -1):
             with open(completeName,"a") as bedfile:
                 bedfile.write(x[4] + "\t")
                 bedfile.write(x[5] + "\t")
@@ -55,19 +60,19 @@ def filter_strain(strain_name,n_bp,fam_name,type_name):
 def bedtools_runner(strain_name,fam_name,type_name):    
     # will output a file named: Unknown-fam-33.fa
     # runs bedtools via bashcript, outputs to /Users/chungjunepark/Documents/T_stableri_BTPI/files_and_outputs/outputs/output_from_bedtools
-    file_name = "/Users/chungjunepark/Documents/T_stableri_BTPI/files_and_outputs/inputs/input_for_bedtools/" + "input_for_bedtools_"+strain_name+"_"+fam_name+".bed"
+    file_name = two_up + "/files_and_outputs/inputs/input_for_bedtools/" + "input_for_bedtools_"+strain_name+"_"+fam_name+".bed"
     # has to cd into /Users/chungjunepark/Documents/T_stableri_BTPI/files_and_outputs/inputs/input_for_bedtools
-    subprocess.run(["cd","/Users/chungjunepark/Documents/"+strain_name+"/files_and_outputs/inputs/input_for_bedtools"])
+    subprocess.run(["cd",two_up+"/files_and_outputs/inputs/input_for_bedtools"])
         
         
     # gets put into subprocess.run()
-    subprocess_argument_frag = ["bedtools", "getfasta","-fi","/Users/chungjunepark/Documents/"+strain_name+"/files_and_outputs/files/"+strain_name+".fa","-bed","/Users/chungjunepark/Documents/"+strain_name+"/files_and_outputs/inputs/input_for_bedtools/input_for_bedtools_"+strain_name+"_"+fam_name+".bed"]
+    subprocess_argument_frag = ["bedtools", "getfasta","-fi",two_up+"/files_and_outputs/files/"+strain_name+".fa","-bed",two_up+"/files_and_outputs/inputs/input_for_bedtools/input_for_bedtools_"+strain_name+"_"+fam_name+".bed"]
 
     # will return the output
     output = subprocess.run(subprocess_argument_frag,stdout = subprocess.PIPE)
     
     # append to other file location
-    save_path = "/Users/chungjunepark/Documents/"+strain_name+"/files_and_outputs/outputs/output_from_bedtools"
+    save_path = two_up+"/files_and_outputs/outputs/output_from_bedtools"
     name_of_file = strain_name+"-"+type_name+"-"+fam_name
     completeName = os.path.join(save_path,name_of_file+".fa")
     with open(completeName,"a") as fa_file:
@@ -76,7 +81,7 @@ def bedtools_runner(strain_name,fam_name,type_name):
   
 def sixpack_primer(strain_name,fam_name,type_name):
     # will prime bedtools output so that it can be sent through sixpack
-    f = open("/Users/chungjunepark/Documents/"+strain_name+"/files_and_outputs/outputs/output_from_bedtools/"+strain_name+"-"+type_name+"-"+fam_name+".fa","r")
+    f = open(two_up+"/files_and_outputs/outputs/output_from_bedtools/"+strain_name+"-"+type_name+"-"+fam_name+".fa","r")
     file_list = []
 
     # counter for sequence files (ex: "sequence_<a>")
@@ -88,7 +93,7 @@ def sixpack_primer(strain_name,fam_name,type_name):
     f.close() 
     
     # setup for file save location
-    save_path = "/Users/chungjunepark/Documents/"+strain_name+"/files_and_outputs/inputs/input_for_six_pack/"
+    save_path = two_up+"/files_and_outputs/inputs/input_for_six_pack/"
 
     # counter for iterator
     i = 0
@@ -106,14 +111,14 @@ def sixpack_runner(strain_name,fam_name,type_name):
     # will run sixpack through subprocess and output .seq and .translated files for the corresponding "input_for_six_pack" file in "output_for_six_pack" folder
     # how many sequence files are there
     stripped_fam_name = fam_name.partition("_")[-1]
-    f = open("/Users/chungjunepark/Documents/"+strain_name+"/files_and_outputs/outputs/output_from_bedtools/"+strain_name+"-"+type_name+"-"+fam_name+".fa","r")
+    f = open(two_up+"/files_and_outputs/outputs/output_from_bedtools/"+strain_name+"-"+type_name+"-"+fam_name+".fa","r")
     text = f.read()
     num_caret = text.count(">")
     f.close()
 
     # paths into output and input folder for sixpack
-    sixpack_output_path = "/Users/chungjunepark/Documents/T_stableri_BTPI/files_and_outputs/outputs/output_from_six_pack/"
-    sixpack_input_path = "/Users/chungjunepark/Documents/T_stableri_BTPI/files_and_outputs/inputs/input_for_six_pack/"
+    sixpack_output_path = two_up + "/files_and_outputs/outputs/output_from_six_pack/"
+    sixpack_input_path = two_up + "/files_and_outputs/inputs/input_for_six_pack/"
     
     # utilizing for loop in order to run sixpack on each "input_for_six_pack" file
     for n in range(1,num_caret+1):
@@ -137,7 +142,7 @@ def sixpack_runner(strain_name,fam_name,type_name):
 def longest_orf(strain_name,fam_name,type_name):
     # one fam_name will go through X amounts of iterations
     # DEFINE X
-    f = open("/Users/chungjunepark/Documents/"+strain_name+"/files_and_outputs/outputs/output_from_bedtools/"+strain_name+"-"+type_name+"-"+fam_name+".fa","r")
+    f = open(two_up+"/files_and_outputs/outputs/output_from_bedtools/"+strain_name+"-"+type_name+"-"+fam_name+".fa","r")
     text = f.read()
     x = text.count(">")
     f.close()
@@ -148,7 +153,7 @@ def longest_orf(strain_name,fam_name,type_name):
         # list that will contain the indexes of all the lines that start with ">"
         caret = []
         # file path + name for input file
-        file_name = "/Users/chungjunepark/Documents/T_stableri_BTPI/files_and_outputs/outputs/output_from_six_pack/output_from_sixpack_"+strain_name+"_"+fam_name+"_"+str(n)+".seq"
+        file_name = two_up + "/files_and_outputs/outputs/output_from_six_pack/output_from_sixpack_"+strain_name+"_"+fam_name+"_"+str(n)+".seq"
         # read file_name and get the sequences
         # f_2 is a list of all the separate lines in the file as its elements
         f_2 = open(file_name).readlines()
@@ -159,7 +164,7 @@ def longest_orf(strain_name,fam_name,type_name):
                 caret.append(f_2.index(element))
         # iterate through the index list and concatinate lines that are inbetween those indexes
         for index,element in enumerate(caret):
-            # element is what we're on right now
+            # element is the index of f_2 that has ">" in it
             # caret[index+1] is the next element
             if index+1 < len(caret):
                 l.append("".join(f_2[element+1:caret[index+1]]))
@@ -167,15 +172,22 @@ def longest_orf(strain_name,fam_name,type_name):
                 break
 
         # longest_orf for specific n in specific fam_name
+        
         longest_orf = max(l, key = len)
         while not longest_orf.startswith("M"):
-            l.remove(longest_orf)
-            longest_orf = max(l, key=len)
+            if len(l) == 1:
+                longest_orf = " "
+                break
+            else:
+                l.remove(longest_orf)
+                longest_orf = max(l, key=len)
+        
+            
         str1 = ""
         longest_orf = str1.join(longest_orf)
 
         # create a file in longest_orf to save .txt file of longest_orf
-        file_path = "/Users/chungjunepark/Documents/T_stableri_BTPI/files_and_outputs/longest_orf/longest_orf_"+strain_name+"_"+fam_name+"_"+str(n)+".txt"
+        file_path = two_up + "/files_and_outputs/longest_orf/longest_orf_"+strain_name+"_"+fam_name+"_"+str(n)+".txt"
 
         with open(file_path,"a") as f_3:
             f_3.write(">"+fam_name+"_"+str(n)+"\n")
@@ -188,3 +200,21 @@ def longest_orf(strain_name,fam_name,type_name):
 #sixpack_primer("T_Stableri_BTPI","rnd-1_family-33","Unknown")
 #sixpack_runner("T_Stableri_BTPI","rnd-1_family-33","Unknown")
 #longest_orf("T_Stableri_BTPI","rnd-1_family-33","Unknown")
+
+def regex():
+    aln_fasta = "/Users/chungjunepark/Documents/T_stableri_BTPI/files_and_outputs/files/hAT_all_d.fa"
+    txt = open(aln_fasta,"r").read()
+    x = re.findall("(E)(R|T|K|A)(\wFS\w{9}R\wR)",txt)
+    y = re.findall("C\w\wC",txt)
+    z = re.findall("H\w{4}H",txt)
+
+    print("For E(R/T/K/A)xFSxxxxxxxxxRxR: ")
+    print(x)
+    print()
+    print("For CxxC: ")
+    print(y)
+    print()
+    print("For HxxxxH:")
+    print(z)
+
+regex()
